@@ -334,3 +334,150 @@ npm Info xxx
 yarn config set registry https://registry.npmtaobao.org
 npm config set registry https://registry.npmtaobao.org
 ```
+
+## 第三章 Buffer缓冲器
+
+### 3.1 Buffer是什么
+
+Buffer是一个和数组类似的对象，不同的是Buffer是专门用来保存二进制数据的。
+
+
+### 3.2 Buffer的特点
+
+1. 效率很高，存储和读取速度很快，它直接对计算机的内存进行操作。
+
+2. 大小固定，一旦确定不能修改。
+
+3. 每个元素占用内存的大小为**1字节**。
+  
+    - 进制相关：
+    
+      十六进制：00 --- ff
+      二进制：00000000 --- 11111111 (8位)
+
+      8位(bit) = 1字节(byte)
+
+4. Buffer是Node中的非常核心的模块，无需下载、无需引入，直接使用
+
+
+### 3.3 Buffer的使用
+
+1. 创建一个Buffer的对象实例 --- 性能特别差 --- 1.在堆里开辟空间 2.清理
+    ```js
+    let buf = new Buffer(10)
+    console.log(buf); //<Buffer 00 00 00 00 00 00 00 00 00 00>
+    ```
+
+
+2. `Buffer.alloc()` --- 性能比new Buffer()强一点 --- 在堆里开辟一块儿空间（无人用过）
+    ```js
+    let buf2 = Buffer.alloc(10)
+    console.log(buf2)
+    ```
+
+
+3. `Buffer.allocUnsafe() `--- 性能最好 --- 
+    1. 输出结果：输出的是16进制，存储的是二进制，输出的时候会自动转16进制
+    2. 在堆里开辟空间，可能残留着别人用过的数据，因此allocUnsafe
+    ```js
+    let buf3 = Buffer.allocUnsafe(10)
+    console.log(buf3) // <Buffer 30 e5 2a aa 3c 01 00 00 c0 78> 随机的
+    ```
+
+
+4. `Buffer.from()`
+   
+    1. 输出的为啥不是字符串？因为用户存储的不一定是字符串，也可能是媒体文件
+    2. 如何把输出转为我们认识的？`toString()`
+    ```js
+    let buf4 = Buffer.from("hello atguigu")
+    console.log(buf4); // <Buffer 68 65 6c 6c 6f 20 61 74 67 75 69 67 75>
+    console.log(buf4.toString()); // hello atguigu
+    ```
+
+## 第四章 Node中的文件操作
+
+Node中的文件系统：
+
+ 1. 在NodeJS中有一个文件系统，所谓的文件系统，就是对着计算机中的文件进行增删改查等操作。
+
+ 2. 在NodeJS中给我们提供了一个模块，叫做**fs模块（文件系统）**，专门用于操作文件。
+
+ 3. fs模块是Node的核心模块，使用的时候，无需下载，直接引入。
+
+
+### 4.1 文件写入
+
+#### 4.1.1 简单文件写入
+
+异步文件写入（简单文件写入）
+
+ **fs.writeFile(file, data[, options], callback)**
+
+ - file <string> | <Buffer> | <URL> | <integer> 要写的文件路径+文件名
+ - data <string> | <Buffer> | <TypedArray> | <DataView> | <Object> 要写入的数据
+ - options **<Object>** | <string> 配置对象（可选参数）
+
+    - encoding <string> | <null> 设置文件的编码方式，默认“utf8”
+    - mode <integer> 设置文件操作权限（8进制），默认值： 0o666
+      - 0o111：文件可被执行的权限    *.exe*  *.msc*  几乎不用
+      - 0o222：文件可被写入的权限
+      - 0o444：文件可被读取的权限
+      - 0o666 = 0o222 + 0o444
+    - flag <string> 打开文件要执行的操作，默认值“w”
+      - a：追加
+      - w：写入
+    - signal <AbortSignal> allows aborting an in-progress writeFile
+ - callback <Function>  回调函数
+    - err <Error> | <AggregateError> 错误参数
+ - Node中有一个原则：错误优先
+
+
+
+基本使用方法：
+```js
+// 引入内置的fs模块
+let fs = require('fs')
+
+// 调入writeFile方法
+fs.writeFile("./demo.txt","耶斯莫拉",(err)=>{
+  if(err){
+    console.log("文件写入失败",err)
+  }else{
+    console.log("文件写入成功")
+  }
+})
+```
+
+修改options，追加数据：
+```js
+// 引入内置的fs模块
+let fs = require('fs')
+
+fs.writeFile(__dirname+"/demo.txt","郭语永远年轻！",{mode:0o666, flag:'a'},(err)=>{
+  if(err){
+    console.log("文件写入失败",err)
+  }else{
+    console.log("文件写入成功")
+  }
+})
+```
+- `__dirname` 表示当前文件所在文件夹路径
+
+#### 4.1.2 流式文件写入
+
+ fs.createWriteStream(path[, options])
+
+ - path <string> | <Buffer> | <URL>  文件路径+文件名
+ - options <string> | <Object>  配置对象
+    - flags <string> 打开文件要执行的操作，默认值“w” 
+      - “r+”：替换
+      - “a”：追加
+    - encoding <string> 设置文件的编码方式，默认“utf8”
+    - fd <integer> | <FileHandle> 文件唯一标识符（Linux），默认值: null
+    - mode <integer>设置文件操作权限（8进制），默认值： 0o666
+    - autoClose <boolean> 自动关闭文件，默认值: true
+    - emitClose <boolean> 自动发射关闭命令: true
+    - start <integer>从第N位开始操作，填整数
+    - fs <Object> | <null> Default: null
+ - Returns: <fs.WriteStream>
