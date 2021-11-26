@@ -466,7 +466,7 @@ fs.writeFile(__dirname+"/demo.txt","郭语永远年轻！",{mode:0o666, flag:'a'
 
 #### 4.1.2 流式文件写入
 
- fs.createWriteStream(path[, options])
+ **fs.createWriteStream(path[, options])**
 
  - path <string> | <Buffer> | <URL>  文件路径+文件名
  - options <string> | <Object>  配置对象
@@ -481,3 +481,112 @@ fs.writeFile(__dirname+"/demo.txt","郭语永远年轻！",{mode:0o666, flag:'a'
     - start <integer>从第N位开始操作，填整数
     - fs <Object> | <null> Default: null
  - Returns: <fs.WriteStream>
+
+```js
+let fs = require('fs')
+
+// 创建一个可写流
+let ws = fs.createWriteStream(__dirname+'/demo2.txt',{start:11,flags:"r+"})
+
+//只要用到流，就必须监测流的状态，否则会导致内存溢出
+ws.on('open',function(){
+  console.log('打开');
+})
+ws.on('close',function(){
+  console.log('关掉');
+})
+
+//使用可写流写入大数据
+ws.write('22\n') 
+ws.write('22\n') 
+ws.close()
+```
+
+
+### 4.2 文件读取
+
+#### 4.2.1 简单文件读取
+
+ **fs.readFile(path[, options], callback)**
+
+ - path <string> | <Buffer> | <URL> | <integer> 文件路径和文件名
+  - options <Object> | <string> 配置对象
+      - encoding <string> | <null> Default: null
+      - flag <string> See support of file system flags. Default: 'r'.
+      - signal <AbortSignal> allows aborting an in-progress readFile
+  - callback <Function> 回调
+      - err <Error> | <AggregateError> 错误对象
+      - data <string> | <Buffer></Buffer> 读出来的数据
+
+```js
+let fs = require('fs')
+
+fs.readFile(__dirname+'/demo.txt',function(err,data){
+  if(err) console.log(err)
+  else console.log(data) // <Buffer 68 65 6c 6c 6f 21 21 21 21 21 21>
+  fs.writeFile('./haha.txt',data,function(err){
+    if(err) console.log(err)
+    else console.log('写入成功！')
+  })
+})
+```
+注意：输出的是Buffer，因为读取的内容可以是视频、图片等各种数据类型。
+
+注意：简单文件写入和简单文件读取，都是一次性把所有要读取或要写入的内容加到内存中，容易造成内存泄露。
+
+#### 4.2.1 流式文件读取
+
+**fs.createReadStream(path[, options])**
+
+- path <string> | <Buffer> | <URL> 要读取的文件路径和文件名
+- options <string> | <Object>配置对象
+    - flags <string>  Default: 'r'.
+    - encoding <string> Default: null
+    - fd <integer> | <FileHandle> Default: null
+    - mode <integer> Default: 0o666
+    - autoClose <boolean> Default: true
+    - emitClose <boolean> Default: true
+    - start <integer> 起始偏移量
+    - end <integer> 结束偏移量: Infinity
+    - **highWaterMark** <integer> 每次读取数据的大小，默认值: 64 * 1024
+    - fs <Object> | <null> Default: null
+
+流式文件读取并写入新文件：
+```js
+
+let {createReadStream, createWriteStream} = require('fs')
+
+//创建一个可读流
+
+let rs = createReadStream(__dirname+'/demo.txt',{
+  highWaterMark:10 * 1024 * 1024  // 这个配置用的最多
+})
+
+let ws = createWriteStream('./haha.txt')
+
+rs.on('open',function(){
+  console.log('可读流打开');
+})
+rs.on('close',function(){
+  console.log('可读流关掉');
+  ws.close()
+})
+ws.on('open',function(){
+  console.log('可写流打开');
+})
+ws.on('close',function(){
+  console.log('可写流关掉');
+})
+
+// 给可读流绑定一个data事件，就会触发可读自动读取内容
+
+rs.on('data',function(data){
+  console.log(data.toString());
+  // Buffer实例的length属性，是表示该Buffer实例占用内存空间的大小
+  console.log(data.length);
+  ws.write(data)
+  // ws.close() // 若在此处关闭流，会写入一次，如果数据较大，后续数据会丢失
+})
+// ws.close() // 若在此处关闭流，导致无法写入数据
+
+```
