@@ -1,0 +1,22 @@
+{
+  "name": "nodejs",
+  "version": "1.0.0",
+  "description": "Node.js之父：Ryan Dahl（瑞安·达尔）\r Node.js诞生时间：2009年",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hengyu-DU/NodeJS.git"
+  },
+  "author": "Hengyu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Hengyu-DU/NodeJS/issues"
+  },
+  "homepage": "https://github.com/Hengyu-DU/NodeJS#readme",
+  "dependencies": {
+    "mongoose": "^6.0.13"
+  }
+}

@@ -592,6 +592,11 @@ rs.on('data',function(data){
 ```
 
 
+
+* 小文件可以直接用简单文件的读写，大文件最好用流式文件读写。             
+
+
+
 # 数据库课程
 
 ## 第一章 数据库
@@ -628,13 +633,6 @@ SQL：Structured Query Language，结构化查询语言。
 2. 有固定的表结构，字段不可随意更改，灵活度稍微欠缺
 3. 高并发读写需求，传统关系型数据库来说，硬盘I/O是一个很大的瓶颈
 
-对于关系型数据库：
-
-- Excel文件 --> 数据库 
-- sheet文件 --> 表
-- 列	头	  --> 字段（唯一标识，不允许修改；主键）
-- 一	行	  --> 一条数据
-
 
 
 #### 1.3.1 非关系型数据库（NoSQL）
@@ -654,12 +652,34 @@ SQL：Structured Query Language，结构化查询语言。
 缺点：
 
 1. 不支持sql，学习和使用成本较高
+
 2. **不支持事务**
+
 3. 复杂查询时语句过于繁琐
 
+   
+
+### 1.4 注意
+
+对于关系型数据库：
+
+- Excel文件 --> 数据库 
+- sheet文件 --> 表
+- 列	头	  --> 字段（唯一标识，不允许修改；主键）
+- 一	行	  --> 一条数据
+
+对于非关系型数据库：
+
+- Excel文件 --> 数据库 
+- sheet文件 --> 集合
+- 列	头	  --> 字段（唯一标识，不允许修改；主键）
+- 一	行	  --> 一条文档
 
 
-关于MongoDB：
+
+## 第二章 mongoDB
+
+**关于MongoDB**：
 
 - MongoDB是为快速开发互联网Web应用而设计的数据库系统。
 
@@ -668,3 +688,129 @@ SQL：Structured Query Language，结构化查询语言。
 - MongoDB的数据模型是面向文档的，所谓文档是一种类似于json的结构，简单理解
 
 - MongoDB这个数据库中存的是各种各样的json。（BSON）
+
+**端口号**：1--65535，不建议使用1-199的端口号，这些是预留给系统的，一般使用4位的，4位的也不要用1开头的。
+
+**常见端口号**：
+
+<img src=".\img\常见端口号.jpg" style="zoom:80%;" />
+
+**灵魂拷问**：
+
+1. 你电脑上安装**数据库**了吗？（你安的是哪个数据库？）答：数据库品牌
+2. 你连接上**数据库**了吗？答：某台机器上的数据库
+3. 咱们项目使用哪个**数据库**？答：某台机器上某品牌数据库划分出来的，为该项目服务的数据库
+
+
+
+##  第三章 mongoDB的使用
+
+### 3.1 简单命令
+
+1. `db`:查看当前在操作哪个数据库
+2. `show dbs`:查看数据库列表（如果数据库为空，将不会显示）
+3. `use test`:切换到test数据库（如果不存在，会自动创建）
+4. `show collections`:展示当前数据库中所有集合
+5. `db.students.insert()`:向当前数据库的students集合插入一个文档（已废弃，改用`insertOne`, `insertMany`, or `bulkWrite`）
+
+### 3.2 原生CRUD
+
+CRUD：增（Create）删（Delete）改（Update）查（Read）
+
+#### C-Create
+
+`db.集合名.insert(文档对象)`
+
+`db.集合名.insertOne(文档对象)`
+
+`db.集合名.insertMany([文档对象,文档对象])`
+
+#### R-Read
+
+`db.集合名.find(查询条件[,投影])`
+
+ * 举例：`db.students.find({age:18})`，查找年龄为18的所有信息
+ * 举例：`db.students.find({age:18,name:'jack'})`，查找年龄为18且名字为jack的学生
+
+**常用操作符：**
+
+1.  < ，<=，>，>=，!== 对应为：`$lt` `$lte` `$gt` `$gte` `$ne`
+   - 举例：`db.集合名.find({age:{$gte:20}})`，年龄大于等于20的
+2.  逻辑或：使用 `$in`或`$or`
+    - 举例：查找年龄为18或20的学生
+      - `db.students.find({age:{$in:[18,20]}})`
+      - `db.students.find({$or:[{age:18},{age:20}]})`
+
+3. 逻辑非：`$nin`
+
+4. 正则匹配：
+
+   * 举例：`db.students.find({name:/^T/})`
+
+5. `$where`能写函数：
+
+   ```js
+   db.students.find({$where:function(){
+   	return this.name === 'zhangsan' && this.age === 18
+   }})
+   ```
+
+6. **投影：过滤掉不想要的数据，只保留想要展示的数据。**
+   - 举例：`db.students.find({},{_id:0,name:0})`，过滤掉id和name
+   - 举例：`db.students.find({},{age:1})`，只保留age
+7. 补充：`db.集合名.findOne(查询条件[,投影])`，默认只要找到一个便停止查询
+
+#### U-Update
+
+`db.集合名.update(查询条件，要更新的内容[,配置对象])`
+
+1. 如下写法会将更新内容替换掉整个文档对象，但_id不受影响
+   * 举例：`db.students.update({name:'Zhangsan'},{age:19})`
+2. 使用`$set`修改指定内容，其他数据不变，不过只能匹配一个Zhangsan
+   - 举例：`db.students.update({name:'Zhangsan'},{$set:{age:19}})`
+
+3. 修改多个文档对象，匹配多个zhangsan，把所有zhangsan的年龄都替换为19
+   - **举例：`db.students.update({name:'Zhangsan'},{$set:{age:19}},{multi:true})`**
+
+4. 补充：`db.集合名.updateOne(查询条件,要更新的内容,[,配置对象])`、`db.集合名.updateMany(查询条件,要更新的内容,[,配置对象])`
+
+#### D-Delete
+
+`db.集合名.remove(查询条件)`1
+
+- 举例：`db.students.remove({age:{$lte:19}})`，删除所有年龄小于等于19的学生。
+
+
+
+## 第四章 Mongoose的使用
+
+### 4.1 简介
+
+Mongoose是一个对象文档模型（ODM）库，它对Node原生的MongoDB模块进行了进一步的优化封装，并提供了更多的功能。
+
+**灵魂拷问**：
+
+为什么选择用mongoose？答：想在Node平台下，更加简单、高效、安全、稳定地操作mongoDB。
+
+### 4.2 优势
+
+1. 可以为文档创建一个模式结构（Schema）
+2. 可以对模型中的对象/文档进行验证
+3. 数据可以通过类型转换转换为对象模型
+4. 可以使用中间件来应用业务逻辑挂钩
+5. 比Node原生的MongoDB驱动更容易
+
+### 4.3 核心对象
+
+**Schema**：模式对象，通过Schema可以对集合进行约束。
+
+**Model**：模型对象，相当于数据库中的集合，通过该对象可以对集合进行操作。
+
+**Document**：文档对象，它和数据库中的文档相对应，通过它可以读取文档的信息，也可以对文档进行各种操作。
+
+### 4.4 使用
+
+
+
+
+
